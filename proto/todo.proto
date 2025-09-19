@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package todo;
+
+// The service definition for our Todo API.
+service TodoService {
+  // Creates a new Todo item.
+  rpc CreateTodo(CreateTodoRequest) returns (Todo);
+
+  // Retrieves a list of all Todo items.
+  rpc GetTodos(GetTodosRequest) returns (GetTodosResponse);
+
+  // Updates an existing Todo item.
+  rpc UpdateTodo(UpdateTodoRequest) returns (Todo);
+
+  // Deletes a Todo item by its ID.
+  rpc DeleteTodo(DeleteTodoRequest) returns (DeleteTodoResponse);
+}
+
+// The core Todo item message
+message Todo {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  bool completed = 4;
+}
+
+// ---- Request/Response Messages for our RPCs ----
+
+message CreateTodoRequest {
+  string title = 1;
+  string description = 2;
+}
+
+message GetTodosRequest {
+  // This is empty for now, as we're just getting all todos.
+  // We could add filtering options here later.
+}
+
+message GetTodosResponse {
+  repeated Todo todos = 1;
+}
+
+message UpdateTodoRequest {
+  string id = 1;
+  // Use optional fields if you want to allow partial updates in the future.
+  // For now, we'll require all fields to be sent for an update.
+  string title = 2;
+  string description = 3;
+  bool completed = 4;
+}
+
+message DeleteTodoRequest {
+  string id = 1;
+}
+
+message DeleteTodoResponse {
+  bool success = 1;
+}
