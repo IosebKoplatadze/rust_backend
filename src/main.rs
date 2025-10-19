@@ -67,22 +67,80 @@ impl TodoService for MyTodoService {
     // --- Unimplemented methods remain the same ---
     async fn create_todo(
         &self,
-        _request: Request<todo::CreateTodoRequest>,
+        request: Request<todo::CreateTodoRequest>,
     ) -> Result<Response<Todo>, Status> {
-        Err(Status::unimplemented("Not yet implemented"))
+        println!("Received a request: {:?}", request);
+
+        let db_todo = sqlx::query_as::<_, DbTodo>(
+            "INSERT INTO todos (title, description, completed) VALUES (?, ?, ?)
+             RETURNING id, title, description, completed",
+        )
+        .bind(request.get_ref().title.clone())
+        .bind(request.get_ref().description.clone())
+        .bind(false)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| {
+            eprintln!("Database error: {}", e);
+            Status::internal("Failed to create todo")
+        })?;
+
+        let todo: Todo = db_todo.into();
+        Ok(Response::new(todo))
     }
+
     // ... (update_todo and delete_todo are also unimplemented)
     async fn update_todo(
         &self,
-        _request: Request<todo::UpdateTodoRequest>,
+        request: Request<todo::UpdateTodoRequest>,
     ) -> Result<Response<Todo>, Status> {
-        Err(Status::unimplemented("Not yet implemented"))
+        println!("Received a request: {:?}", request);
+
+        let db_todo = sqlx::query_as::<_, DbTodo>(
+            "UPDATE todos SET title = ?, description = ?, completed = ? WHERE id = ?
+             RETURNING id, title, description, completed",
+        )
+        .bind(request.get_ref().title.clone())
+        .bind(request.get_ref().description.clone())
+        .bind(request.get_ref().completed)
+        .bind(request.get_ref().id.parse::<i64>().map_err(|e| {
+            eprintln!("Parse error: {}", e);
+            Status::invalid_argument("Invalid ID format")
+        })?)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| {
+            eprintln!("Database error: {}", e);
+            Status::internal("Failed to update todo")
+        })?;
+
+        let todo: Todo = db_todo.into();
+        Ok(Response::new(todo))
     }
+
     async fn delete_todo(
         &self,
         _request: Request<todo::DeleteTodoRequest>,
     ) -> Result<Response<todo::DeleteTodoResponse>, Status> {
-        Err(Status::unimplemented("Not yet implemented"))
+        println!("Received a request: {:?}", _request);
+
+        let rows_affected = sqlx::query("DELETE FROM todos WHERE id = ?")
+            .bind(_request.get_ref().id.parse::<i64>().map_err(|e| {
+                eprintln!("Parse error: {}", e);
+                Status::invalid_argument("Invalid ID format")
+            })?)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| {
+                eprintln!("Database error: {}", e);
+                Status::internal("Failed to delete todo")
+            })?
+            .rows_affected();
+
+        let response = todo::DeleteTodoResponse {
+            success: rows_affected > 0,
+        };
+        Ok(Response::new(response))
     }
 }
 

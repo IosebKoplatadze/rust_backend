@@ -46,6 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         title: "Test Todo from Client".to_string(),
         description: "This is a test todo created by the gRPC client".to_string(),
     });
+    let mut created_todo_id = String::new();
     match client.create_todo(request).await {
         Ok(response) => {
             let todo = response.into_inner();
@@ -54,6 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("   Title: {}", todo.title);
             println!("   Description: {}", todo.description);
             println!("   Completed: {}", todo.completed);
+            created_todo_id = todo.id;
         }
         Err(e) => {
             println!("❌ Error: {}", e);
@@ -65,7 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("✏️  Test 3: Updating a todo...");
     println!("{}", "=".repeat(60));
     let request = Request::new(UpdateTodoRequest {
-        id: "1".to_string(),
+        id: created_todo_id.clone(),
         title: "Updated Todo Title".to_string(),
         description: "Updated description".to_string(),
         completed: true,
@@ -89,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🗑️  Test 4: Deleting a todo...");
     println!("{}", "=".repeat(60));
     let request = Request::new(DeleteTodoRequest {
-        id: "1".to_string(),
+        id: created_todo_id,
     });
     match client.delete_todo(request).await {
         Ok(response) => {
